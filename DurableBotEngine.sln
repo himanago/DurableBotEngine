@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30204.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableBotEngine.Sample", "DurableBotEngine.Sample\DurableBotEngine.Sample.csproj", "{633900D5-5CC3-4E70-9B37-A4AB13B6567D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DurableBotEngine.Core", "DurableBotEngine.Core\DurableBotEngine.Core.csproj", "{A5470621-6A08-489B-9B86-40BC408F0C1E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{633900D5-5CC3-4E70-9B37-A4AB13B6567D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{633900D5-5CC3-4E70-9B37-A4AB13B6567D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{633900D5-5CC3-4E70-9B37-A4AB13B6567D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{633900D5-5CC3-4E70-9B37-A4AB13B6567D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A5470621-6A08-489B-9B86-40BC408F0C1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A5470621-6A08-489B-9B86-40BC408F0C1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A5470621-6A08-489B-9B86-40BC408F0C1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A5470621-6A08-489B-9B86-40BC408F0C1E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {105148BB-A5AA-4555-AE2D-2019C2D2EB50}
+	EndGlobalSection
+EndGlobal
