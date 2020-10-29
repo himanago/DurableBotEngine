@@ -104,7 +104,15 @@ namespace DurableBotEngine.Core
                         {
                             if (!skill.IsContinued)
                             {
-                                messages.Last().QuickReply = await FinishAndGetResumeQuickReplyAsync(context);
+                                var quickReply = await FinishAndGetResumeQuickReplyAsync(context);
+                                if (messages.Last().QuickReply != null && messages.Last().QuickReply.Items.Count > 0)
+                                {
+                                    messages.Last().QuickReply = MergeQuickReply(messages.Last().QuickReply, quickReply);
+                                }
+                                else
+                                {
+                                    messages.Last().QuickReply = quickReply;
+                                }
                             }
                             await LineMessagingClient.ReplyMessageAsync(ev.ReplyToken, messages);
                         }
@@ -142,6 +150,14 @@ namespace DurableBotEngine.Core
             await OnAfterMessageAsync(ev, query);
         }
 
+        private QuickReply MergeQuickReply(QuickReply a, QuickReply b)
+        {
+            var items = new List<QuickReplyButtonObject>();
+            items.AddRange(a.Items);
+            items.AddRange(b.Items);
+            return new QuickReply(items);
+        }
+
         protected override async Task OnPostbackAsync(PostbackEvent ev)
         {
             var query = JsonConvert.DeserializeObject<UserQuery>(ev.Postback.Data);
@@ -172,7 +188,7 @@ namespace DurableBotEngine.Core
 
                 context.UserQuery = query;
 
-                if (!context.UserQuery.IsSubSkill && !context.UserQuery.AllowCallingLater &&
+                if (!context.UserQuery.IsSubSkill && !context.UserQuery.AllowExternalCalls &&
                     (context.IsNew || context.UserQuery.Timestamp > requestedTimestamp))
                 {
                     await LineMessagingClient.ReplyMessageAsync(ev.ReplyToken, "その操作は現在できません。");
@@ -197,7 +213,15 @@ namespace DurableBotEngine.Core
                 {
                     if (!targetSkill.IsContinued)
                     {
-                        messages.Last().QuickReply = await FinishAndGetResumeQuickReplyAsync(context);
+                        var quickReply = await FinishAndGetResumeQuickReplyAsync(context);
+                        if (messages.Last().QuickReply != null && messages.Last().QuickReply.Items.Count > 0)
+                        {
+                            messages.Last().QuickReply = MergeQuickReply(messages.Last().QuickReply, quickReply);
+                        }
+                        else
+                        {
+                            messages.Last().QuickReply = quickReply;
+                        }
                     }
                     await LineMessagingClient.ReplyMessageAsync(ev.ReplyToken, messages);
                 }
@@ -240,7 +264,7 @@ namespace DurableBotEngine.Core
         /// 中断中のスキルがあればひとつ前の中断スキルに戻るためのクイックリプライを返します。
         /// </summary>
         /// <returns></returns>
-        public async Task<QuickReply> FinishAndGetResumeQuickReplyAsync(Context context)
+        private async Task<QuickReply> FinishAndGetResumeQuickReplyAsync(Context context)
         {
             var entityId = new EntityId(nameof(ContextEntity), $"{context.UserQuery.IntentName}-{context.UserId}");
             await DurableClient.SignalEntityAsync<IContextEntity>(entityId, proxy => proxy.SetContext(null));
