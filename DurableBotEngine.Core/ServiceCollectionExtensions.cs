@@ -1,12 +1,11 @@
-﻿using DurableBotEngine.Core.Configurations;
+﻿using Azure.Storage.Blobs;
+using DurableBotEngine.Core.Configurations;
 using DurableBotEngine.Core.Models;
 using DurableBotEngine.Core.NaturalLanguage;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Dialogflow.v2;
 using Google.Apis.Services;
 using LineDC.Messaging;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -37,18 +36,16 @@ namespace DurableBotEngine.Core
 
                 services.AddSingleton<INaturalLanguageUnderstandingClient, DialogflowClient>(_ =>
                     {
-                        var storageAccount = CloudStorageAccount.Parse(dialogflowSettings.ApiCredentialsStorageConnectionString);
-
-                        var blobClient = storageAccount.CreateCloudBlobClient();
-
-                        var container = blobClient.GetContainerReference(dialogflowSettings.ApiCredentialsContainerName);
-
-                        var blobReference = container.GetBlockBlobReference(dialogflowSettings.ApiCredentialsJsonName);
+                        var containerClient = new BlobContainerClient(
+                            dialogflowSettings.ApiCredentialsStorageConnectionString,
+                            dialogflowSettings.ApiCredentialsContainerName);
+                        
+                        var blobClient = containerClient.GetBlobClient(dialogflowSettings.ApiCredentialsJsonName);
 
                         ServiceAccountCredential credential;
                         using (var stream = new MemoryStream())
                         {
-                            blobReference.DownloadToStream(stream);
+                            blobClient.DownloadTo(stream);
                             stream.Position = 0;
                             credential = GoogleCredential.FromStream(stream)
                                 .CreateScoped(DialogflowService.Scope.CloudPlatform)
