@@ -124,6 +124,7 @@ namespace DurableBotEngine.Core
                     }
                     else if (query.IsFallback)
                     {
+                        Logger.LogError("Fallback");
                         // TODO connect to knowledge base
                         await LineMessagingClient.ReplyMessageAsync(ev.ReplyToken,
                             query.FulfillmentText ?? "すみません、よくわかりませんでした。");

@@ -12,7 +12,9 @@ namespace DurableBotEngine.Sample
         public override void Configure(IFunctionsHostBuilder builder)
         {
             builder.Services
-                .AddBot<SampleBotApplication>(NaturalLanguageOptions.Dialogflow)
+                .AddLuis()
+                //.AddDialogflow()
+                .AddBot<SampleBotApplication>()
                 .AddSkill<WeatherSample>()
                 .AddSkill<StepSample>()
                 .AddSkill<BatchSample>();
