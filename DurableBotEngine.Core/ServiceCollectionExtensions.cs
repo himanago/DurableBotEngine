@@ -15,65 +15,71 @@ namespace DurableBotEngine.Core
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddBot<TBotApplication>(this IServiceCollection services, NaturalLanguageOptions naturalLanguageOption = NaturalLanguageOptions.Dialogflow)
+        public static IServiceCollection AddBot<TBotApplication>(this IServiceCollection services)
             where TBotApplication: BotApplication
         {
-            var config = new ConfigurationBuilder()
-                .AddJsonFile("local.settings.json", true)
-                .AddEnvironmentVariables()
-                .Build();
-
+            var config = GetConfig();
             var lineSettings = config.GetSection(nameof(LineMessagingApiSettings)).Get<LineMessagingApiSettings>();
 
-            services
+            return services
                 .AddSingleton(lineSettings)
-                .AddSingleton<ILineMessagingClient>(_ => LineMessagingClient.Create(lineSettings.ChannelAccessToken));
+                .AddSingleton<ILineMessagingClient>(_ => LineMessagingClient.Create(lineSettings.ChannelAccessToken))
+                .AddScoped<BotApplication, TBotApplication>();
+        }
 
-            if (naturalLanguageOption == NaturalLanguageOptions.Dialogflow)
+        public static IServiceCollection AddLuis(this IServiceCollection services, string fallbackMessage = null)
+        {
+            var config = GetConfig();
+            var luisSettings = config.GetSection(nameof(LuisSettings)).Get<LuisSettings>();
+
+            return services
+                .AddSingleton<INaturalLanguageUnderstandingClient, LuisClient>(_ => new LuisClient(luisSettings, fallbackMessage));
+        }
+
+        public static IServiceCollection AddDialogflow(this IServiceCollection services)
+        {
+            var config = GetConfig();
+            var dialogflowSettings = config.GetSection(nameof(DialogflowSettings)).Get<DialogflowSettings>();
+
+            return services.AddSingleton<INaturalLanguageUnderstandingClient, DialogflowClient>(_ =>
             {
-                // Dialogflow
-                var dialogflowSettings = config.GetSection(nameof(DialogflowSettings)).Get<DialogflowSettings>();
+                var containerClient = new BlobContainerClient(
+                    dialogflowSettings.ApiCredentialsStorageConnectionString,
+                    dialogflowSettings.ApiCredentialsContainerName);
 
-                services.AddSingleton<INaturalLanguageUnderstandingClient, DialogflowClient>(_ =>
-                    {
-                        var containerClient = new BlobContainerClient(
-                            dialogflowSettings.ApiCredentialsStorageConnectionString,
-                            dialogflowSettings.ApiCredentialsContainerName);
-                        
-                        var blobClient = containerClient.GetBlobClient(dialogflowSettings.ApiCredentialsJsonName);
+                var blobClient = containerClient.GetBlobClient(dialogflowSettings.ApiCredentialsJsonName);
 
-                        ServiceAccountCredential credential;
-                        using (var stream = new MemoryStream())
-                        {
-                            blobClient.DownloadTo(stream);
-                            stream.Position = 0;
-                            credential = GoogleCredential.FromStream(stream)
-                                .CreateScoped(DialogflowService.Scope.CloudPlatform)
-                                .UnderlyingCredential as ServiceAccountCredential;
-                        }
+                ServiceAccountCredential credential;
+                using (var stream = new MemoryStream())
+                {
+                    blobClient.DownloadTo(stream);
+                    stream.Position = 0;
+                    credential = GoogleCredential.FromStream(stream)
+                        .CreateScoped(DialogflowService.Scope.CloudPlatform)
+                        .UnderlyingCredential as ServiceAccountCredential;
+                }
 
-                        var service = new DialogflowService(new BaseClientService.Initializer
-                        {
-                            HttpClientInitializer = credential,
-                        });
+                var service = new DialogflowService(new BaseClientService.Initializer
+                {
+                    HttpClientInitializer = credential,
+                });
 
-                        return new DialogflowClient(service, dialogflowSettings.ProjectId);
-                    });
-            }
-            else
-            {
-                // LUIS: not implmented
-                throw new NotImplementedException();
-            }
-
-            services.AddScoped<BotApplication, TBotApplication>();
-            return services;
+                return new DialogflowClient(service, dialogflowSettings.ProjectId);
+            });
         }
 
         public static IServiceCollection AddSkill<T>(this IServiceCollection services)
             where T : class, ISkill
         {
             return services.AddSingleton<ISkill, T>();
+        }
+
+        private static IConfigurationRoot GetConfig()
+        {
+            return new ConfigurationBuilder()
+                .AddJsonFile("local.settings.json", true)
+                .AddEnvironmentVariables()
+                .Build();
         }
     }
 }

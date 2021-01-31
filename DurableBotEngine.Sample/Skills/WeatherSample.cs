@@ -3,6 +3,7 @@ using LineDC.Messaging.Messages;
 using LineDC.Messaging.Messages.Actions;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DurableBotEngine.Sample.Skills
@@ -17,21 +18,24 @@ namespace DurableBotEngine.Sample.Skills
 
         public async Task<List<ISendMessage>> GetReplyMessagesAsync(Context context)
         {
-            // dateパラメータが来たかどうか確認
             if (context.UserQuery.AllRequiredParamsPresent && context.UserQuery.Parameters.TryGetValue("date", out var date))
             {
-                // ある場合はパラメータを使った返信を行う
-                // コンテキストを終了
+                var val = date is Newtonsoft.Json.Linq.JArray arr
+                    ? string.Join(',', arr.Select(s => s.ToString()))   // for LUIS
+                    : date.ToString();                                  // for Dialogflow
+
+                // dateパラメータがある場合はパラメータを使った返信を行う
                 IsContinued = false;
                 return new List<ISendMessage>
                 {
-                    // 適当なメッセージを返す
-                    new TextMessage($"{date}はたぶん晴れますよ。")
+                    new TextMessage($"{val}はたぶん晴れますよ。")
                 };
             }
             else
             {
-                // ない場合はDialogflowのメッセージをそのまま返す
+                // 聞き返すメッセージが設定されていればそのまま返す（Dialogflowのみ）
+                var reprompt = context.UserQuery.FulfillmentText ?? "いつの天気ですか？";
+
                 // サンプルでPostbackでdateが飛ばせるようにする
                 var data = JsonConvert.SerializeObject(new UserQuery
                 {
@@ -46,7 +50,7 @@ namespace DurableBotEngine.Sample.Skills
                 IsContinued = true;
                 return new List<ISendMessage>
                 {
-                    new TextMessage(context.UserQuery.FulfillmentText, new QuickReply(new List<QuickReplyButtonObject>
+                    new TextMessage(reprompt, new QuickReply(new List<QuickReplyButtonObject>
                     {
                         new QuickReplyButtonObject(new PostbackTemplateAction("明日", data))
                     }))
