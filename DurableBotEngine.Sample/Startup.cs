@@ -17,7 +17,8 @@ namespace DurableBotEngine.Sample
                 .AddBot<SampleBotApplication>()
                 .AddSkill<WeatherSample>()
                 .AddSkill<StepSample>()
-                .AddSkill<BatchSample>();
+                .AddSkill<BatchSample>()
+                .AddSkill<LongTimeSample>();
         }
     }
 }

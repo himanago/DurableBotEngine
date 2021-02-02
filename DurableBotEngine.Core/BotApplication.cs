@@ -9,6 +9,8 @@ using LineDC.Messaging.Webhooks;
 using LineDC.Messaging.Webhooks.Events;
 using LineDC.Messaging.Webhooks.Messages;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask.ContextImplementations;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask.Options;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -18,22 +20,24 @@ using System.Threading.Tasks;
 
 namespace DurableBotEngine.Core
 {
-    public class BotApplication : WebhookApplication, IDurableWebhookApplication
+    public class BotApplication : WebhookApplication
     {
         public const string SkillOrchestratorFunctionName = "SkillOrchestrator";
         private ILineMessagingClient LineMessagingClient { get; }
         private INaturalLanguageUnderstandingClient NluClient { get; }
-        public IDurableClient DurableClient { get; set; }
+        protected IDurableClient DurableClient { get; }
         public static ISkill[] Skills { get; private set; }
         protected bool ShouldEnd { get; set; }
         protected ILogger Logger { get; }
 
         public BotApplication(
             ILineMessagingClient lineMessagingClient, LineMessagingApiSettings settings,
+            IDurableClientFactory durableClientFactory,
             INaturalLanguageUnderstandingClient nluClient, ILogger logger, params ISkill[] skills)
             : base(lineMessagingClient, settings.ChannelSecret)
         {
             LineMessagingClient = lineMessagingClient;
+            DurableClient = durableClientFactory.CreateClient();
             NluClient = nluClient;
             Skills = skills;
             Logger = logger;
@@ -88,11 +92,6 @@ namespace DurableBotEngine.Core
                             context = new Context { UserId = ev.Source.UserId, IsNew = true };
                             query.Timestamp = DateTime.UtcNow.Ticks;
                             context.UserQuery = query;
-                        }
-
-                        if (skill is IDurableSkill durableSkill)
-                        {
-                            durableSkill.DurableClient = DurableClient;
                         }
 
                         var messages = await skill.GetReplyMessagesAsync(context);
@@ -199,11 +198,6 @@ namespace DurableBotEngine.Core
                 // スキル再確認
                 var subSkill = Skills.FirstOrDefault(s => s.IntentName == context.UserQuery.IntentName);
                 var targetSkill = subSkill ?? skill;
-
-                if (targetSkill is IDurableSkill durableSkill)
-                {
-                    durableSkill.DurableClient = DurableClient;
-                }
 
                 var messages = await targetSkill.GetReplyMessagesAsync(context);
 
