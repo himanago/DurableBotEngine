@@ -6,6 +6,7 @@ using DurableBotEngine.Core.NaturalLanguage;
 using LineDC.Messaging;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using Microsoft.Azure.WebJobs.Extensions.DurableTask.ContextImplementations;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
@@ -17,9 +18,11 @@ namespace DurableBotEngine.Sample
         private ILineMessagingClient LineMessagingClient { get; }
 
         public SampleBotApplication(
-            ILineMessagingClient lineMessagingClient, LineMessagingApiSettings settings, INaturalLanguageUnderstandingClient dialogflowClient,
+            ILineMessagingClient lineMessagingClient, LineMessagingApiSettings settings,
+            IDurableClientFactory durableClientFactory,
+            INaturalLanguageUnderstandingClient nluClient,
             ILoggerFactory loggerFactory, params ISkill[] skills)
-            : base(lineMessagingClient, settings, dialogflowClient,
+            : base(lineMessagingClient, settings, durableClientFactory, nluClient,
                   loggerFactory.CreateLogger(LogCategories.CreateFunctionUserCategory(nameof(WebhookEndpointFunction))),
                   skills)
         {

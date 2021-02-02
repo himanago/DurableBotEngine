@@ -3,7 +3,6 @@ using LineDC.Messaging.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using System;
@@ -25,11 +24,8 @@ namespace DurableBotEngine.Sample
         [FunctionName(nameof(WebhookEndpointFunction))]
         public async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req,
-            [DurableClient] IDurableClient durableClient,
             ILogger log)
         {
-            BotApplication.DurableClient = durableClient;
-
             try
             {
                 var body = await new StreamReader(req.Body).ReadToEndAsync();
