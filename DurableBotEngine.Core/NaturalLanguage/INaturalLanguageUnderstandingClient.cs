@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using DurableBotEngine.Core.Models;
 
-namespace DurableBotEngine.Core.NaturalLanguage
+namespace DurableBotEngine.NaturalLanguage
 {
     public interface INaturalLanguageUnderstandingClient
     {

@@ -1,14 +1,12 @@
-﻿using DurableBotEngine.Core.Configurations;
+﻿using DurableBotEngine.Configurations;
 using DurableBotEngine.Core.Models;
 using Microsoft.Azure.CognitiveServices.Language.LUIS.Runtime;
 using Microsoft.Azure.CognitiveServices.Language.LUIS.Runtime.Models;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DurableBotEngine.Core.NaturalLanguage
+namespace DurableBotEngine.NaturalLanguage
 {
     public class LuisClient : INaturalLanguageUnderstandingClient
     {        
@@ -43,7 +41,9 @@ namespace DurableBotEngine.Core.NaturalLanguage
             {
                 IntentName = prediction.TopIntent,
                 IsFallback = isFallback,
-                Parameters = prediction.Entities,
+                Parameters = prediction.Entities.ToDictionary(
+                    entity => entity.Key,
+                    entity => entity.Value is Newtonsoft.Json.Linq.JArray arr ? string.Join(',', arr.Select(s => s.ToString())) : entity.Value),
                 AllRequiredParamsPresent = true,
                 FulfillmentText = isFallback ? FallbackMessage : null,
                 Timestamp = DateTime.UtcNow.Ticks

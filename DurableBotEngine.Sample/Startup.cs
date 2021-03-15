@@ -1,5 +1,6 @@
 ﻿using DurableBotEngine.Core;
-using DurableBotEngine.Core.NaturalLanguage;
+//using DurableBotEngine.Dialogflow;
+using DurableBotEngine.Luis;
 using DurableBotEngine.Sample;
 using DurableBotEngine.Sample.Skills;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
@@ -12,10 +13,11 @@ namespace DurableBotEngine.Sample
         public override void Configure(IFunctionsHostBuilder builder)
         {
             builder.Services
-                .AddLuis()
                 //.AddDialogflow()
+                .AddLuis()
                 .AddBot<SampleBotApplication>()
                 .AddSkill<WeatherSample>()
+                .AddSkill<ProfileFormSample>()
                 .AddSkill<StepSample>()
                 .AddSkill<BatchSample>()
                 .AddSkill<LongTimeSample>();

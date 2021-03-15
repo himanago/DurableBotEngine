@@ -1,7 +1,7 @@
-﻿using DurableBotEngine.Core.Configurations;
+﻿using DurableBotEngine.Configurations;
 using DurableBotEngine.Core.Entities;
 using DurableBotEngine.Core.Models;
-using DurableBotEngine.Core.NaturalLanguage;
+using DurableBotEngine.NaturalLanguage;
 using LineDC.Messaging;
 using LineDC.Messaging.Messages;
 using LineDC.Messaging.Messages.Actions;
@@ -10,7 +10,6 @@ using LineDC.Messaging.Webhooks.Events;
 using LineDC.Messaging.Webhooks.Messages;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask.ContextImplementations;
-using Microsoft.Azure.WebJobs.Extensions.DurableTask.Options;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -23,6 +22,8 @@ namespace DurableBotEngine.Core
     public class BotApplication : WebhookApplication
     {
         public const string SkillOrchestratorFunctionName = "SkillOrchestrator";
+        private readonly string WaiterEntityPrefix = "$Waiter";
+
         private ILineMessagingClient LineMessagingClient { get; }
         private INaturalLanguageUnderstandingClient NluClient { get; }
         protected IDurableClient DurableClient { get; }
@@ -52,16 +53,61 @@ namespace DurableBotEngine.Core
             switch (ev.Message.Type)
             {
                 case EventMessageType.Text:
-                    // detect intent
-                    query = await NluClient.DetectIntent(((TextEventMessage) ev.Message).Text,
-                        ev.Source.UserId);
-                    Logger.LogInformation(query.IntentName);
+                    var text = ((TextEventMessage)ev.Message).Text;
 
-                    var skill = Skills.FirstOrDefault(s => s.IntentName == query.IntentName);
+                    // テキスト・インテント待ちを確認
+                    var waiterId = new EntityId(nameof(ContextEntity), $"{WaiterEntityPrefix}_{ev.Source.UserId}");
+                    var waiterState = await DurableClient.ReadEntityStateAsync<ContextEntity>(waiterId);
+
+                    var isWaitingForIntents = false;
+                    var isWaitingForText = false;
+                    Context waitingContext = null;
+                    if (waiterState.EntityExists && waiterState.EntityState.Context != null)
+                    {
+                        waitingContext = waiterState.EntityState.Context;
+                        if (waitingContext.ExpectedIntentNames != null)
+                        {
+                            isWaitingForIntents = true;
+                        }
+                        else
+                        {
+                            isWaitingForText = true;
+                        }
+                    }
+                    
+                    if (isWaitingForIntents || !isWaitingForText)
+                    {
+                        // detect intent
+                        query = await NluClient.DetectIntent(text, ev.Source.UserId);
+                        Logger.LogInformation(query.IntentName);
+                    }
+
+                    if (isWaitingForIntents)
+                    {
+                        Logger.LogInformation(waitingContext.SkillName);
+                    }
+
+                    // 実行スキルを選択
+                    var targetSkill = (isWaitingForIntents && waitingContext.ExpectedIntentNames.Contains(query.IntentName)) || isWaitingForText
+                        ? waitingContext.SkillName  // 待機スキル
+                        : query.IntentName;         // 解析スキル
+
+                    if (isWaitingForText)
+                    {
+                        query = new UserQuery
+                        {
+                            IntentName = targetSkill,
+                        };
+                    }
+
+                    // テキストをセット
+                    query.Text = text;
+
+                    var skill = Skills.FirstOrDefault(s => s.IntentName == targetSkill);
                     if (skill != null)
                     {
                         // コンテキスト確認を行う
-                        var entityId = new EntityId(nameof(ContextEntity), $"{query.IntentName}-{ev.Source.UserId}");
+                        var entityId = new EntityId(nameof(ContextEntity), $"{targetSkill}-{ev.Source.UserId}");
                         var state = await DurableClient.ReadEntityStateAsync<ContextEntity>(entityId);
 
                         Context context = null;
@@ -93,11 +139,18 @@ namespace DurableBotEngine.Core
                             query.Timestamp = DateTime.UtcNow.Ticks;
                             context.UserQuery = query;
                         }
+                        context.SkillName = targetSkill;
 
                         var messages = await skill.GetReplyMessagesAsync(context);
 
                         // Save context
                         await DurableClient.SignalEntityAsync<IContextEntity>(entityId, proxy => proxy.SetContext(context));
+
+                        // Waiter
+                        if (context.IsWaiting)
+                        {
+                            await DurableClient.SignalEntityAsync<IContextEntity>(waiterId, proxy => proxy.SetContext(context));
+                        }
 
                         if (messages != null)
                         {
@@ -165,13 +218,46 @@ namespace DurableBotEngine.Core
             await OnBeforePostbackAsync(ev, query);
             if (ShouldEnd) return;
 
-            var skill = Skills.FirstOrDefault(s => s.IntentName == query.IntentName);
+            // テキスト・インテント待ちを確認
+            var waiterId = new EntityId(nameof(ContextEntity), $"{WaiterEntityPrefix}_{ev.Source.UserId}");
+            var waiterState = await DurableClient.ReadEntityStateAsync<ContextEntity>(waiterId);
+
+            var isWaitingForIntents = false;
+            var isWaitingForText = false;
+            Context waitingContext = null;
+            if (waiterState.EntityExists && waiterState.EntityState.Context != null)
+            {
+                waitingContext = waiterState.EntityState.Context;
+                if (waitingContext.ExpectedIntentNames != null)
+                {
+                    isWaitingForIntents = true;
+                }
+                else
+                {
+                    isWaitingForText = true;
+                }
+            }
+
+            // 実行スキルを選択
+            var targetSkill = (isWaitingForIntents && waitingContext.ExpectedIntentNames.Contains(query.IntentName)) || isWaitingForText
+                ? waitingContext.SkillName  // 待機スキル
+                : query.IntentName;         // 解析スキル
+
+            if (isWaitingForText)
+            {
+                query = new UserQuery
+                {
+                    IntentName = targetSkill,
+                };
+            }
+
+            var skill = Skills.FirstOrDefault(s => s.IntentName == targetSkill);
             if (skill != null)
             {
                 var requestedTimestamp = query.Timestamp;
 
                 // コンテキスト確認を行う
-                var entityId = new EntityId(nameof(ContextEntity), $"{query.IntentName}-{ev.Source.UserId}");
+                var entityId = new EntityId(nameof(ContextEntity), $"{targetSkill}-{ev.Source.UserId}");
                 var state = await DurableClient.ReadEntityStateAsync<ContextEntity>(entityId);
 
                 Context context = null;
@@ -197,16 +283,22 @@ namespace DurableBotEngine.Core
 
                 // スキル再確認
                 var subSkill = Skills.FirstOrDefault(s => s.IntentName == context.UserQuery.IntentName);
-                var targetSkill = subSkill ?? skill;
+                var execSkill = subSkill ?? skill;
 
-                var messages = await targetSkill.GetReplyMessagesAsync(context);
+                var messages = await execSkill.GetReplyMessagesAsync(context);
 
                 // 状態を保存
                 await DurableClient.SignalEntityAsync<IContextEntity>(entityId, proxy => proxy.SetContext(context));
 
+                // Waiter
+                if (context.IsWaiting)
+                {
+                    await DurableClient.SignalEntityAsync<IContextEntity>(waiterId, proxy => proxy.SetContext(context));
+                }
+
                 if (messages != null)
                 {
-                    if (!targetSkill.IsContinued)
+                    if (!execSkill.IsContinued)
                     {
                         var quickReply = await FinishAndGetResumeQuickReplyAsync(context);
                         if (messages.Last().QuickReply != null && messages.Last().QuickReply.Items.Count > 0)
@@ -261,7 +353,7 @@ namespace DurableBotEngine.Core
         /// <returns></returns>
         private async Task<QuickReply> FinishAndGetResumeQuickReplyAsync(Context context)
         {
-            var entityId = new EntityId(nameof(ContextEntity), $"{context.UserQuery.IntentName}-{context.UserId}");
+            var entityId = new EntityId(nameof(ContextEntity), $"{context.SkillName}-{context.UserId}");
             await DurableClient.SignalEntityAsync<IContextEntity>(entityId, proxy => proxy.SetContext(null));
 
             QuickReply ret = null;
@@ -273,7 +365,9 @@ namespace DurableBotEngine.Core
                 new System.Threading.CancellationToken());
 
             var entityQuery = result.Entities
-                .Where(e => e.EntityId.EntityKey.EndsWith(context.UserId) && !e.EntityId.EntityKey.StartsWith(context.UserQuery.IntentName))
+                .Where(e => e.EntityId.EntityKey.EndsWith(context.UserId) &&
+                    !e.EntityId.EntityKey.StartsWith(context.SkillName) &&
+                    !e.EntityId.EntityKey.StartsWith(WaiterEntityPrefix))
                 .OrderByDescending(e => e.LastOperationTime);
 
             Context targetContext = null;

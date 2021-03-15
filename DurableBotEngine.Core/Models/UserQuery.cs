@@ -58,7 +58,13 @@ namespace DurableBotEngine.Core.Models
         /// <summary>
         /// Determines whether this query is allowed to call after the dialog finished.
         /// </summary>
-        [JsonProperty("allowCallingLater")]
+        [JsonProperty("allowExternalCalls")]
         public bool AllowExternalCalls { get; set; }
+
+        /// <summary>
+        /// Matched text in expected texts.
+        /// </summary>
+        [JsonProperty("text")]
+        public string Text { get; set; }
     }
 }
