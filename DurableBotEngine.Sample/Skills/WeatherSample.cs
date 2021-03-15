@@ -20,9 +20,7 @@ namespace DurableBotEngine.Sample.Skills
         {
             if (context.UserQuery.AllRequiredParamsPresent && context.UserQuery.Parameters.TryGetValue("date", out var date))
             {
-                var val = date is Newtonsoft.Json.Linq.JArray arr
-                    ? string.Join(',', arr.Select(s => s.ToString()))   // for LUIS
-                    : date.ToString();                                  // for Dialogflow
+                var val = date.ToString();
 
                 // dateパラメータがある場合はパラメータを使った返信を行う
                 IsContinued = false;

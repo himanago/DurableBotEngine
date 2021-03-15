@@ -1,4 +1,4 @@
-﻿namespace DurableBotEngine.Core.Configurations
+﻿namespace DurableBotEngine.Configurations
 {
     public class LineMessagingApiSettings
     {

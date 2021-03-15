@@ -1,13 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.7" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.11" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DurableBotEngine.Core\DurableBotEngine.Core.csproj" />
+    <ProjectReference Include="..\DurableBotEngine.Dialogflow\DurableBotEngine.Dialogflow.csproj" />
+    <ProjectReference Include="..\DurableBotEngine.Luis\DurableBotEngine.Luis.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

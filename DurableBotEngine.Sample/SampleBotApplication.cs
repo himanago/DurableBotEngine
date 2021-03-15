@@ -1,8 +1,8 @@
-﻿using DurableBotEngine.Core;
-using DurableBotEngine.Core.Configurations;
+﻿using DurableBotEngine.Configurations;
+using DurableBotEngine.Core;
 using DurableBotEngine.Core.Entities;
 using DurableBotEngine.Core.Models;
-using DurableBotEngine.Core.NaturalLanguage;
+using DurableBotEngine.NaturalLanguage;
 using LineDC.Messaging;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;

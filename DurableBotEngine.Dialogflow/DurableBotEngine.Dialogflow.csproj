@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Version>0.1.0-beta</Version>
+    <Authors>himanago</Authors>
+    <Company>himanago</Company>
+    <Copyright>MIT</Copyright>
+    <PackageProjectUrl>https://github.com/himanago/DurableBotEngine</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.8.0" />
+    <PackageReference Include="Google.Apis.Dialogflow.v2" Version="1.50.0.2257" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DurableBotEngine.Core\DurableBotEngine.Core.csproj" />
+  </ItemGroup>
+
+</Project>

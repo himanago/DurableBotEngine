@@ -1,9 +1,12 @@
 ﻿using DurableBotEngine.Core.Models;
 using LineDC.Messaging.Messages;
+using LineDC.Messaging.Messages.Actions;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask.ContextImplementations;
+using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,11 +30,11 @@ namespace DurableBotEngine.Sample.Skills
         {
             var message = "dummy...";
 
-            var status = await DurableClient.GetStatusAsync($"SampleTimer_{context.UserId}");
+            var status = await DurableClient.GetStatusAsync(context.UserId);
 
             if (status == null)
             {
-                await DurableClient.StartNewAsync(nameof(RunDurableTimer), $"SampleTimer_{context.UserId}");
+                await DurableClient.StartNewAsync(nameof(RunDurableTimer), context.UserId);
                 message = "Orchestrator started.";
             }
             else if (
@@ -43,7 +46,7 @@ namespace DurableBotEngine.Sample.Skills
             else if (
                 status.RuntimeStatus == OrchestrationRuntimeStatus.Completed)
             {
-                await DurableClient.StartNewAsync(nameof(RunDurableTimer), $"SampleTimer_{context.UserId}");
+                await DurableClient.StartNewAsync(nameof(RunDurableTimer), context.UserId);
                 message = "Orchestrator is completed and restarted.";
             }
 

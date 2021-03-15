@@ -18,6 +18,21 @@ namespace DurableBotEngine.Core.Models
         [JsonIgnore]
         public bool IsNew { get; set; }
 
+        [JsonProperty("isWaiting")]
+        public bool IsWaiting { get; private set; }
+        [JsonProperty("expectedIntentNames")]
+        public string[] ExpectedIntentNames { get; private set; }
 
+
+        public void WaitForText()
+        {
+            IsWaiting = true;
+        }
+
+        public void WaitForIntents(params string[] intentNames)
+        {
+            IsWaiting = true;
+            ExpectedIntentNames = intentNames;
+        }
     }
 }
