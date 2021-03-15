@@ -6,6 +6,7 @@
     <Version>0.1.0-beta</Version>
     <Copyright>MIT</Copyright>
     <PackageProjectUrl>https://github.com/himanago/DurableBotEngine</PackageProjectUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,7 +5,7 @@
     <RootNamespace>DurableBotEngine.Core</RootNamespace>
     <AssemblyName>DurableBotEngine.Core</AssemblyName>
     <Version>0.1.0-beta</Version>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>himanago</Authors>
     <Company />
     <Product>DurableBotEngine.Core</Product>
